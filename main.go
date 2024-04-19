@@ -148,7 +148,7 @@ func mux(source string, target string, videoLang string) (string, error) {
 }
 
 func main() {
-	videoLang := flag.String("lang", DefaultOrigLang, "video language")
+	videoLang := flag.String("lang", "", "video language")
 	flag.Parse()
 	var args = flag.Args()
 
