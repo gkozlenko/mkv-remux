@@ -52,7 +52,7 @@ func parse(source string) (ParsedMovie, error) {
 
 func addAudioStream(output []string, stream ParsedStream, streamIndex byte) []string {
 	output = append(output, "-map", fmt.Sprintf("0:%d", stream.Index))
-	if stream.CodecName == "ac3" {
+	if stream.CodecName == "ac3" || stream.CodecName == "eac3" {
 		output = append(output, fmt.Sprintf("-c:%d", streamIndex), "copy")
 	} else {
 		output = append(output, fmt.Sprintf("-c:%d", streamIndex), "ac3", fmt.Sprintf("-b:%d", streamIndex), "640k")
