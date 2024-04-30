@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -96,8 +97,12 @@ func mux(source string, target string, videoLang string) (string, error) {
 	// get video stream
 	for _, stream := range movie.Streams {
 		if stream.CodecType == "video" {
-			if videoLang == "" && stream.Tags.Language != "" {
+			if origLang == "" && stream.Tags.Language != "" {
 				origLang = stream.Tags.Language
+			}
+			if origLang == "" {
+				fmt.Fprintln(os.Stderr, "[warn] video language is not defined, use default one:", DefaultOrigLang)
+				origLang = DefaultOrigLang
 			}
 			output = append(
 				output,
