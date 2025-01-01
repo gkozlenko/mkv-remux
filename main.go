@@ -51,23 +51,23 @@ func parse(source string) (ParsedMovie, error) {
 	return movie, nil
 }
 
-func addAudioStream(output []string, stream ParsedStream, streamIndex byte) []string {
+func addAudioStream(output []string, stream ParsedStream, streamIndex byte, lang string) []string {
 	output = append(output, "-map", fmt.Sprintf("0:%d", stream.Index))
 	if stream.CodecName == "ac3" || stream.CodecName == "eac3" || stream.CodecName == "aac" {
 		output = append(output, fmt.Sprintf("-c:%d", streamIndex), "copy")
 	} else {
 		output = append(output, fmt.Sprintf("-c:%d", streamIndex), "ac3", fmt.Sprintf("-b:%d", streamIndex), "640k")
 	}
-	output = append(output, fmt.Sprintf("-metadata:s:%d", streamIndex), fmt.Sprintf("language=%s", stream.Tags.Language))
+	output = append(output, fmt.Sprintf("-metadata:s:%d", streamIndex), fmt.Sprintf("language=%s", lang))
 	return output
 }
 
-func addSubtitleStream(output []string, stream ParsedStream, streamIndex byte) []string {
+func addSubtitleStream(output []string, stream ParsedStream, streamIndex byte, lang string) []string {
 	output = append(
 		output,
 		"-map", fmt.Sprintf("0:%d", stream.Index),
 		fmt.Sprintf("-c:%d", streamIndex), "copy",
-		fmt.Sprintf("-metadata:s:%d", streamIndex), fmt.Sprintf("language=%s", stream.Tags.Language),
+		fmt.Sprintf("-metadata:s:%d", streamIndex), fmt.Sprintf("language=%s", lang),
 	)
 	return output
 }
@@ -125,10 +125,23 @@ func mux(source string, target string, videoLang string) (string, error) {
 	}
 
 	// get audio stream
+	hasAudioStream := false
 	for _, lang := range languages {
 		for _, stream := range movie.Streams {
 			if stream.CodecType == "audio" && stream.Tags.Language == lang && stream.Channels <= 6 {
-				output = addAudioStream(output, stream, streamIndex)
+				output = addAudioStream(output, stream, streamIndex, lang)
+				streamIndex++
+				hasAudioStream = true
+				break
+			}
+		}
+	}
+
+	if !hasAudioStream {
+		// try to find audio stream without language
+		for _, stream := range movie.Streams {
+			if stream.CodecType == "audio" && stream.Tags.Language == "" && stream.Channels <= 6 {
+				output = addAudioStream(output, stream, streamIndex, origLang)
 				streamIndex++
 				break
 			}
@@ -136,10 +149,22 @@ func mux(source string, target string, videoLang string) (string, error) {
 	}
 
 	// get subtitles
+	hasSubtitleStream := false
 	for _, lang := range languages {
 		for _, stream := range movie.Streams {
 			if stream.CodecType == "subtitle" && stream.Tags.Language == lang {
-				output = addSubtitleStream(output, stream, streamIndex)
+				output = addSubtitleStream(output, stream, streamIndex, lang)
+				streamIndex++
+				hasSubtitleStream = true
+				break
+			}
+		}
+	}
+
+	if !hasSubtitleStream {
+		for _, stream := range movie.Streams {
+			if stream.CodecType == "subtitle" && stream.Tags.Language == "" {
+				output = addSubtitleStream(output, stream, streamIndex, origLang)
 				streamIndex++
 				break
 			}
